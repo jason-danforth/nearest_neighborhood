@@ -1,0 +1,74 @@
+<!--
+Managing variables: https://stackoverflow.com/questions/11178426/how-can-i-pass-data-from-flask-to-javascript-in-a-template
+href and js function (scroll down to "onclick parameter" answer): https://stackoverflow.com/questions/1265887/call-javascript-function-on-hyperlink-click
+-->
+
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Nearest Neighborhood</title>
+
+    <!-- D3 -->
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-tip/0.7.1/d3-tip.min.js"></script>
+    
+    <!-- Bootstrap -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.0/css/bootstrap.min.css" integrity="sha384-SI27wrMjH3ZZ89r4o+fGIJtnzkAnFs3E4qz9DIYioCQ5l9Rd/7UAa8DHcaL8jkWt" crossorigin="anonymous">    
+    <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.0/js/bootstrap.min.js" integrity="sha384-3qaqj0lc6sV/qpzrc1N5DC6i1VRn/HyX4qdPaiEFbn54VjQBEU341pvjz7Dv3n6P" crossorigin="anonymous"></script>
+
+    <!-- JQuery and AJAX -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+    <!-- Leaflet and Vector Tiles-->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@latest/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@latest/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/geojson-vt@3.2.0/geojson-vt.js"></script>
+    <script src="https://unpkg.com/leaflet.vectorgrid@latest/dist/Leaflet.VectorGrid.js"></script>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/d3Style.css') }}">
+</head>
+
+
+<body>
+<div id="overlay_1">
+    <br>
+    <h3><div class="borough_manhattan"></div></h3>
+    <h3><div class="zip_manhattan"></div></h3>
+    <h3><div class="neighborhood_manhattan"></div></h3>
+    <div class="chart_1"></div>
+    <br><br>
+    <svg class="legend"></svg>
+</div>
+<div id="overlay_2">
+    <br>
+    <h3><div class="borough_outer"></div></h3>
+    <h3><div class="zip_outer"></div></h3>
+    <h3><div class="neighborhood_outer"></div></h3>
+    <div class="chart_2"></div>
+    <br>
+    <!-- <div class="dropdown">
+        <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            Data Type
+        </button>
+        <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+            <a class="dropdown-item" onclick="var dictObj={{data|safe}}; updateVal('landuse', dictObj)">Land Use</a>
+            <a class="dropdown-item" onclick="var dictObj={{data|safe}}; updateVal('yearbuilt', dictObj)">Year Built</a>
+            <a class="dropdown-item" onclick="var dictObj={{data|safe}}; updateVal('numfloors', dictObj)">Density</a>
+        </div>
+    </div> -->
+</div>
+
+<!-- map div, place map here, referenced by the ID -->
+<div id="map"></div>
+</body>
+
+<script type="text/javascript" src="../static/js/config.js"></script>
+<script type="text/javascript" src="../static/js/chart.js"></script>
+<script>
+  var dictObj = {{data|safe}};
+  doTheThing(dictObj);
+</script>
