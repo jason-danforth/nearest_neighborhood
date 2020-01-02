@@ -20,6 +20,9 @@ def run_query(zipcode):
     # Query records to test that it works
     data_df = pd.read_sql("SELECT * FROM zip_table", conn)
 
+    # Emphasize Parks as special landuse
+    data_df['Open Space & Outdoor Recreation'] = data_df['Open Space & Outdoor Recreation'] * 4
+
     # Split DFs so that selected outer zipcode can find nearest neighbor zip in Manhattan
     manhattan_df = data_df[data_df.borocode == "Manhattan"]
     outer_borough_df = data_df[data_df.borocode != "Manhattan"]
@@ -120,7 +123,10 @@ def run_query(zipcode):
         for item in dictObj["manhattan"]["values"]:
             value_type = dictObj["manhattan"]["values"][item]["label"]
             dictObj["manhattan"]["values"][item]["GFA"] = target_df[value_type].tolist()[0]
-        
+
+        # Reset park values
+        dictObj["manhattan"]["values"]["I"]["GFA"] = dictObj["manhattan"]["values"]["I"]["GFA"] / 4     
+   
         
     else:
         # Pull out target zipcode from outer_borough_df
@@ -135,6 +141,9 @@ def run_query(zipcode):
             value_type = dictObj["outer"]["values"][item]["label"]
             dictObj["outer"]["values"][item]["GFA"] = target_df[value_type].tolist()[0]
 
+        # Reset park values
+        dictObj["outer"]["values"]["I"]["GFA"] = dictObj["outer"]["values"]["I"]["GFA"] / 4   
+
 
     # KNN
     if target_borough == 'Manhattan': #i.e. the nearest neighbor will NOT be in Manhattan
@@ -142,7 +151,8 @@ def run_query(zipcode):
         # Combine with Outerborough df to train model
         train_data = pd.concat([target_df, outer_borough_df])
 
-        # Drop column with strings (b/c KNN needs numeric data) and reset index
+        # Drop columns that shouldn't be part of KNN distance calculation and reset index
+        train_data.drop("zipcode", axis=1, inplace=True)
         train_data.drop("borocode", axis=1, inplace=True)
         train_data.drop("neighborhood", axis=1, inplace=True)
         train_data.reset_index(drop=True, inplace=True)
@@ -156,9 +166,10 @@ def run_query(zipcode):
         result = train_data.iloc[nearest_neighbor_index, :]
         
         # Define zipcode and borough
-        result_zipcode = int(result["zipcode"])
-        result_neighborhood = data_df[data_df.zipcode == result["zipcode"]].neighborhood.tolist()[0]
-        result_borough = data_df[data_df.zipcode == result["zipcode"]].borocode.tolist()[0]
+        recreated_data = pd.concat([target_df, outer_borough_df]) # recreate df to access zipcode
+        result_zipcode = recreated_data.iloc[nearest_neighbor_index, :].zipcode
+        result_neighborhood = data_df[data_df.zipcode == result_zipcode].neighborhood.tolist()[0]
+        result_borough = data_df[data_df.zipcode == result_zipcode].borocode.tolist()[0]
         dictObj["outer"]["zipcode"] = result_zipcode
         dictObj["outer"]["neighborhood"] = result_neighborhood
         dictObj["outer"]["borough"] = result_borough
@@ -167,13 +178,17 @@ def run_query(zipcode):
             value_type = dictObj["outer"]["values"][item]["label"]
             dictObj["outer"]["values"][item]["GFA"] = result[value_type]
 
+        # Reset park values
+        dictObj["outer"]["values"]["I"]["GFA"] = dictObj["outer"]["values"]["I"]["GFA"] / 4     
+
     
     else: # i.e. the nearest neighbor IS in Manhattan
 
         # Combine with Manhattan df to train model
         train_data = pd.concat([target_df, manhattan_df])
         
-        # Drop column with strings and reset index
+        # Drop columns that shouldn't be part of KNN distance calculation and reset index
+        train_data.drop("zipcode", axis=1, inplace=True)
         train_data.drop("borocode", axis=1, inplace=True)
         train_data.drop("neighborhood", axis=1, inplace=True)
         train_data.reset_index(drop=True, inplace=True)
@@ -185,12 +200,12 @@ def run_query(zipcode):
         # Find nearest neighbor
         nearest_neighbor_index = indices[0][1]
         result = train_data.iloc[nearest_neighbor_index, :]
-        result_borough = data_df.borocode[data_df.zipcode == result.zipcode].tolist()[0]
         
         # Define zipcode, neighborhood, and borough
-        result_zipcode = int(result["zipcode"])
-        result_neighborhood = data_df[data_df.zipcode == result["zipcode"]].neighborhood.tolist()[0]
-        result_borough = data_df[data_df.zipcode == result["zipcode"]].borocode.tolist()[0]
+        recreated_data = pd.concat([target_df, manhattan_df]) # recreate df to access zipcode ADDED THIS LINE
+        result_zipcode = recreated_data.iloc[nearest_neighbor_index, :].zipcode
+        result_neighborhood = data_df[data_df.zipcode == result_zipcode].neighborhood.tolist()[0]
+        result_borough = data_df[data_df.zipcode == result_zipcode].borocode.tolist()[0]        
         dictObj["manhattan"]["zipcode"] = result_zipcode
         dictObj["manhattan"]["neighborhood"] = result_neighborhood
         dictObj["manhattan"]["borough"] = result_borough
@@ -198,6 +213,9 @@ def run_query(zipcode):
         for item in dictObj["manhattan"]["values"]:
             value_type = dictObj["manhattan"]["values"][item]["label"]
             dictObj["manhattan"]["values"][item]["GFA"] = result[value_type]
+
+        # Reset park values
+        dictObj["manhattan"]["values"]["I"]["GFA"] = dictObj["manhattan"]["values"]["I"]["GFA"] / 4
 
     return dictObj
 
@@ -220,7 +238,12 @@ def welcome():
     return render_template("index.html", data=dictObj) 
 
 
+@app.route("/api/zipcode/<zipcode>", methods=["POST"])
+def updateZip(zipcode):
 
+    dictObj = run_query(zipcode)
+
+    return dictObj
 
 
 # @app.route("/api/value_type/<value_type>", methods=["POST"])
@@ -240,16 +263,6 @@ def welcome():
 
 #     return values
 
-
-
-
-
-@app.route("/api/zipcode/<zipcode>", methods=["POST"])
-def updateZip(zipcode):
-
-    dictObj = run_query(zipcode)
-
-    return dictObj
 
 
 

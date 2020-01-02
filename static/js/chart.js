@@ -67,6 +67,7 @@ console.log(availableZips);
 // link to zipcode data
 var link2 = "static/geojson/zipcodes.geojson";
 
+
 // outline by zipcode
 d3.json(link2, function (data) {
 
@@ -107,19 +108,12 @@ d3.json(link2, function (data) {
                 },
                 // When a feature (neighborhood) is clicked, it is enlarged to fit the screen
                 click: function (event) {
-                    
-                    // move bounds to the right so that when the map zooms into the zipcode the popup isn't covered by D3 overlays
-                    // new_bounds = event.target.getBounds();
-                    // new_bounds._northEast.lng -= 0.025;
-                    //map.fitBounds(new_bounds);
-
                     zipCode = feature.properties.postalCode;
                     zipCode = zipCode.toString();
                     
                     updateZip(zipCode);
                 }
             });
-            //layer.bindPopup("<h6>" + feature.properties.PO_NAME + "</h6>");
         }
     }).addTo(map);
 });
