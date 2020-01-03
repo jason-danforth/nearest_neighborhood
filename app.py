@@ -32,6 +32,7 @@ def run_query(zipcode):
     dictObj = {"manhattan": {"borough": "",
                             "zipcode": "",
                             "neighborhood": "",
+                            "FAR": "",
                             "values": {"A": {"color": "#FFDD80", 
                                             "GFA": 0,
                                             "label": "1 & 2 Family Residential"},
@@ -70,6 +71,7 @@ def run_query(zipcode):
             "outer": {"borough": "",
                     "zipcode": "",
                     "neighborhood": "",
+                    "FAR": "",
                     "values": {"A": {"color": "#FFDD80", 
                                     "GFA": 0,
                                     "label": "1 & 2 Family Residential"},
@@ -109,6 +111,7 @@ def run_query(zipcode):
 
     target_borough = data_df.borocode[data_df.zipcode == zipcode].tolist()[0]
     target_neighborhood = data_df.neighborhood[data_df.zipcode == zipcode].tolist()[0]
+    target_FAR = data_df.FAR[data_df.zipcode == zipcode].tolist()[0]
 
     # INITIAL QUERY
     if target_borough == 'Manhattan':
@@ -119,6 +122,7 @@ def run_query(zipcode):
         dictObj["manhattan"]["zipcode"] = zipcode
         dictObj["manhattan"]["neighborhood"] = target_neighborhood
         dictObj["manhattan"]["borough"] = target_borough
+        dictObj["manhattan"]["FAR"] = target_FAR
         
         for item in dictObj["manhattan"]["values"]:
             value_type = dictObj["manhattan"]["values"][item]["label"]
@@ -136,6 +140,7 @@ def run_query(zipcode):
         dictObj["outer"]["zipcode"] = int(zipcode)
         dictObj["outer"]["neighborhood"] = target_neighborhood
         dictObj["outer"]["borough"] = target_borough
+        dictObj["outer"]["FAR"] = target_FAR
         
         for item in dictObj["outer"]["values"]:
             value_type = dictObj["outer"]["values"][item]["label"]
@@ -170,9 +175,11 @@ def run_query(zipcode):
         result_zipcode = recreated_data.iloc[nearest_neighbor_index, :].zipcode
         result_neighborhood = data_df[data_df.zipcode == result_zipcode].neighborhood.tolist()[0]
         result_borough = data_df[data_df.zipcode == result_zipcode].borocode.tolist()[0]
+        result_FAR = data_df[data_df.zipcode == result_zipcode].FAR.tolist()[0]
         dictObj["outer"]["zipcode"] = result_zipcode
         dictObj["outer"]["neighborhood"] = result_neighborhood
         dictObj["outer"]["borough"] = result_borough
+        dictObj["outer"]["FAR"] = result_FAR
         
         for item in dictObj["outer"]["values"]:
             value_type = dictObj["outer"]["values"][item]["label"]
@@ -206,10 +213,12 @@ def run_query(zipcode):
         result_zipcode = recreated_data.iloc[nearest_neighbor_index, :].zipcode
         result_neighborhood = data_df[data_df.zipcode == result_zipcode].neighborhood.tolist()[0]
         result_borough = data_df[data_df.zipcode == result_zipcode].borocode.tolist()[0]        
+        result_FAR = data_df[data_df.zipcode == result_zipcode].FAR.tolist()[0]
         dictObj["manhattan"]["zipcode"] = result_zipcode
         dictObj["manhattan"]["neighborhood"] = result_neighborhood
         dictObj["manhattan"]["borough"] = result_borough
-        
+        dictObj["manhattan"]["FAR"] = result_FAR
+
         for item in dictObj["manhattan"]["values"]:
             value_type = dictObj["manhattan"]["values"][item]["label"]
             dictObj["manhattan"]["values"][item]["GFA"] = result[value_type]

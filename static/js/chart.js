@@ -20,14 +20,15 @@ L.tileLayer("https://api.mapbox.com/styles/v1/jason-danforth/ck45xl2k6185n1cs6ro
 var zipLayer = L.layerGroup();
 map.addLayer(zipLayer);
 
-//------------------------Add Raster Underlay-------------------------------------------------------------------------------------------------------------------------------------------
 
+
+//------------------------Add Raster Underlay-------------------------------------------------------------------------------------------------------------------------------------------
 
 // Specify the layer for the zipcodes so that they show up on top
 map.createPane('rasterLayer');
 map.getPane('rasterLayer').style.zIndex = 0;
 
-var imageUrl = "static/images/map_underlay.png",
+var imageUrl = "static/images/map_underlay_small.png",
 imageBounds = [[40.49554008834934, -74.25595705177238], [40.91560726799925, -73.6997545181533]];
 
 var rasterUnderlay = L.imageOverlay(imageUrl, imageBounds, {pane: "rasterLayer"}).addTo(map);
@@ -61,8 +62,6 @@ d3.csv(csvLink, function(error, data) {
         availableZips.push(item.zipcodes);
     })
 });
-
-console.log(availableZips);
 
 // link to zipcode data
 var link2 = "static/geojson/zipcodes.geojson";
@@ -127,167 +126,85 @@ d3.json(link2, function (data) {
 
 
 
-//--------------------------Draw/Update Manhattan Chart---------------------------------------------------------------------------------------------------------------------------------------
+//--------------------------Draw/Update Charts---------------------------------------------------------------------------------------------------------------------------------------
 
-// Attribution: https://bl.ocks.org/tezzutezzu/c2653d42ffb4ecc01ffe2d6c97b2ee5e
-// Description of transitions: https://jonsadka.com/blog/how-to-create-adaptive-pie-charts-with-transitions-in-d3
+// Attribution: https://bl.ocks.org/SpaceActuary/97d70de639c9c1724f434a9c64cc1a68
 
-var myDuration = 1000;
 
-var width = 325;
-var height = 325;
-var radius = Math.min(width, height) / 2;
-var outerRadius = 20
+// Set initla input
+var manPrev = [0.004749091612728957, 0.02021618988283336, 0.20107708958148293, 0.33372601860875495, 0.4303886444449339, 0.009753557315571416, .000089408553694525, 0.2703779363869448, 0.019466010671471135, 0.012880742845263667, 0.06559351396299633],
+    outerPrev = [0.13928599588374238, 0.24135624599990063, 0.14304300010295457, 0.2575431884131981, 0.16868239994799133, 0.04753541814163875, 0.0025537515105740986, 0.1265333870557079, 0.02789482654070388, 0.03550047111561127, 0.03247988612623857],
+    manFAR = 0.5644702134886085,
+    outerFAR = 0.14513290996211148,
+    n = 11;
+
+var chartColors = ["#FFDD80", "#ff9100", "#bf360c", "#ff5252", "#c51162", "#7b1fa2", "#ba68c8", "#0d47a1", "#00bfa5", "#607d8b", "#263238"];
+
+var width = 325,
+    height = 325,
+    outerRadius = 160,
+    innerRadius = 75;
+
+var radiusScale = d3.scaleLinear()
+    .domain([0, 1]) // input value
+    .range([innerRadius+5, outerRadius]); // remapped output value
+
+var arc = d3.arc().innerRadius(innerRadius);
+
+var pie = d3.pie()
+    .sort(null);
 
 var svg_manhattan = d3.select(".chart_1").append("svg")
     .attr("width", width)
-    .attr("height", height)
-    .append("g")
-    .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+    .attr("height", height);
 
 var svg_outer = d3.select(".chart_2").append("svg")
     .attr("width", width)
-    .attr("height", height)
-    .append("g")
-    .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+    .attr("height", height);
 
+svg_manhattan.selectAll(".arc")
+    .data(arcs(manPrev, manPrev))
+    .enter().append("g")
+    .attr("class", "arc")
+    .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")")
+    .append("path")
+    .attr("fill", function(d, i) { return chartColors[i]; })
+    .attr("d", arc);
 
+svg_outer.selectAll(".arc")
+    .data(arcs(outerPrev, outerPrev))
+    .enter().append("g")
+    .attr("class", "arc")
+    .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")")
+    .append("path")
+    .attr("fill", function(d, i) { return chartColors[i]; })
+    .attr("d", arc);
 
+function arcs(firstArray, secondArray, firstFAR, secondFAR) {
+    var arcs0 = pie(firstArray),
+        arcs1 = pie(secondArray),
+        i = -1,
+        arc,
+        outerRad0 = radiusScale(firstFAR),
+        outerRad1 = radiusScale(secondFAR);
 
-function change_manhattan(dictObj) { 
-
-    var pie = d3.pie()
-        .value(function(d) { return d.GFA; })
-        .sort(null);
-
-    var radScale = d3.scaleLinear()
-        .domain([10000, 10300])
-        .range([140, 210]);
-
-    var arc = d3.arc()
-        .innerRadius(radius - 85)
-        .outerRadius(radius - 20)
-        //.outerRadius(radScale(dictObj.key));
-        //.outerRadius(radius - outerRadius);
-
-    var tool_tip = d3.tip()
-        .attr("class", "d3-tip")
-        .html(function(d) {`<h3>Hi there!</h3>`});
-        //.html(function(d) {`<h3>${d.data.key}</h3>`});
-        // svg.call(tool_tip);
-    
-    var path = svg_manhattan.selectAll("path");
-    var data0 = path.data();
-
-    data1 = pie(Object.values(dictObj.manhattan.values)); // These are the values for the zipcode: each unique value and their GFA [{0: {GFA: 200, label (i.e. landuse or year built): "6"}, 1: {GFA: 555, label: "1"}, 2: {GFA: 200, , label: "11"}}]
-    
-    path = path.data(data1, key);   
-
-    path.transition()
-        .duration(myDuration)
-        .attrTween("d", arcTween)
-
-    path.enter()
-        .append("path")
-        .each(function(d, i) {
-        var narc = findNeighborArc(i, data0, data1, key) ;
-        if(narc) {          
-            this._current = narc;
-            this._previous = narc;
-        } 
-        else {          
-            this._current = d;
-        }}) 
-        .attr("fill", function(d,i) { 
-        return d.data.color
-        })
-        .style("stroke", "white")
-        .transition()
-        .duration(myDuration)
-        .attrTween("d", arcTween)
-        //.on('mouseover', tool_tip.show)
-        //.on('mouseout', tool_tip.hide)
-        //.on("mouseover", function(d) {return "hi!"})
-        //(function(d) {`<h3>${d.data.key}</h3>`}) // ?????????????????
-    
-    path.exit()
-        .transition()
-        .duration(myDuration)
-        .attrTween("d", function(d, index) {
-            //var currentIndex = this._previous.data.val;
-            var i = d3.interpolateObject(d,this._previous);
-            return function(t) {
-                return arc(i(t))
-            }
-        })
-        .remove()
-
-    firstTime = false;
-
-
-    function key(d) {
-        return d.data.label;
-    }   
-    
-    function type(d) {
-        d.GFA = +d.GFA;
-        return d;
+    while (++i < n) {
+        arc = arcs0[i];
+        arc.outerRadius = outerRad0;
+        arc.next = arcs1[i];
+        arc.next.outerRadius = outerRad1; 
     }
-    
-    function findNeighborArc(i, data0, data1, key) {
-        var d;
-        if(d = findPreceding(i, data0, data1, key)) {
-            var obj = cloneObj(d);
-            obj.startAngle = d.endAngle;
-            return obj;
-        } 
-        else if(d = findFollowing(i, data0, data1, key)) {
-            var obj = cloneObj(d);
-            obj.endAngle = d.startAngle;
-            return obj;
-        }
-        return null
-    }
-    
-    // Find the element in data0 that joins the highest preceding element in data1.
-    function findPreceding(i, data0, data1, key) {
-        var m = data0.length;
-        while (--i >= 0) {
-            var k = key(data1[i]);
-            for (var j = 0; j < m; ++j) {
-                if (key(data0[j]) === k) return data0[j];
-            }
-        }
-    }
-    
-    // Find the element in data0 that joins the lowest following element in data1.
-    function findFollowing(i, data0, data1, key) {
-        var n = data1.length, m = data0.length;
-        while (++i < n) {
-        var k = key(data1[i]);
-        for (var j = 0; j < m; ++j) {
-            if (key(data0[j]) === k) return data0[j];
-            }
-        }      
-    }
-    
-    function arcTween(d) {
-        var i = d3.interpolate(this._current, d);
-        this._current = i(0);
-        return function(t) {
-            return arc(i(t))
-        }
-    }
-    
-    function cloneObj(obj) {
-        var o = {};
-        for(var i in obj) {
-            o[i] = obj[i];
-        }
-        return o;
-    }
+
+    return arcs0;
 }
 
+function tweenArc(b) {
+    return function(a, i) {
+      var d = b.call(this, a, i), i = d3.interpolate(a, d);
+      for (var k in d) a[k] = d[k]; // update data
+      return function(t) { return arc(i(t)); };
+    };
+  }
 
 
 
@@ -295,141 +212,65 @@ function change_manhattan(dictObj) {
 
 
 
-//--------------------------Draw/Update Outer Borough Chart---------------------------------------------------------------------------------------------------------------------------------------
 
-function change_outer(dictObj) { 
+function change_manhattan(dictObj) {
 
-    var pie = d3.pie()
-        .value(function(d) { return d.GFA; })
-        .sort(null);
+    var manNext = Object.values(dictObj.manhattan.values).map(data => data.GFA);
+    var nextFAR = dictObj.manhattan.FAR;
 
-    var radScale = d3.scaleLinear()
-        .domain([10000, 10300])
-        .range([140, 210]);
+    function transitionManhattan(manNext) {
 
-    var arc = d3.arc()
-        .innerRadius(radius - 85)
-        .outerRadius(radius - 20)
-        //.outerRadius(radScale(dictObj.key));
-        //.outerRadius(radius - outerRadius);
-
-    var tool_tip = d3.tip()
-        .attr("class", "d3-tip")
-        .html(function(d) {`<h3>Hi there!</h3>`});
-        //.html(function(d) {`<h3>${d.data.key}</h3>`});
-        // svg.call(tool_tip);
-    
-    var path = svg_outer.selectAll("path");
-    var data0 = path.data();
-
-    data1 = pie(Object.values(dictObj.outer.values)); // These are the values for the zipcode: each unique value and their GFA [{0: {GFA: 200, label (i.e. landuse or year built): "6"}, 1: {GFA: 555, label: "1"}, 2: {GFA: 200, , label: "11"}}]
-    
-    path = path.data(data1, key);   
-
-    path.transition()
-        .duration(myDuration)
-        .attrTween("d", arcTween)
-
-    path.enter()
-        .append("path")
-        .each(function(d, i) {
-        var narc = findNeighborArc(i, data0, data1, key) ;
-        if(narc) {          
-            this._current = narc;
-            this._previous = narc;
-        } 
-        else {          
-            this._current = d;
-        }}) 
-        .attr("fill", function(d,i) { 
-        return d.data.color
-        })
-        .style("stroke", "white")
-        .transition()
-        .duration(myDuration)
-        .attrTween("d", arcTween)
-        //.on('mouseover', tool_tip.show)
-        //.on('mouseout', tool_tip.hide)
-        //.on("mouseover", function(d) {return "hi!"})
-        //(function(d) {`<h3>${d.data.key}</h3>`}) // ?????????????????
-    
-    path.exit()
-        .transition()
-        .duration(myDuration)
-        .attrTween("d", function(d, index) {
-            //var currentIndex = this._previous.data.val;
-            var i = d3.interpolateObject(d,this._previous);
-            return function(t) {
-                return arc(i(t))
-            }
-        })
-        .remove()
-
-    firstTime = false;
+        var path = svg_manhattan.selectAll(".arc > path")
+            .data(arcs(manPrev, manNext, manFAR, nextFAR));
+        
+        var t2 = path.transition()
+                    .duration(1000)
+              .attrTween("d", tweenArc(function(d, i) {
+                //console.log("i: ", i, "d: ", d, "d.next: ", d.next)
+                return {
+                  startAngle: d.next.startAngle,
+                  endAngle: d.next.endAngle,
+                  outerRadius: d.next.outerRadius
+                };
+              }));
+      
+        manPrev = manNext;
+        manFAR = nextFAR;
+      }
+        
+    transitionManhattan(manNext);
+};
 
 
-    function key(d) {
-        return d.data.label;
-    }   
-    
-    function type(d) {
-        d.GFA = +d.GFA;
-        return d;
-    }
-    
-    function findNeighborArc(i, data0, data1, key) {
-        var d;
-        if(d = findPreceding(i, data0, data1, key)) {
-            var obj = cloneObj(d);
-            obj.startAngle = d.endAngle;
-            return obj;
-        } 
-        else if(d = findFollowing(i, data0, data1, key)) {
-            var obj = cloneObj(d);
-            obj.endAngle = d.startAngle;
-            return obj;
-        }
-        return null
-    }
-    
-    // Find the element in data0 that joins the highest preceding element in data1.
-    function findPreceding(i, data0, data1, key) {
-        var m = data0.length;
-        while (--i >= 0) {
-            var k = key(data1[i]);
-            for (var j = 0; j < m; ++j) {
-                if (key(data0[j]) === k) return data0[j];
-            }
-        }
-    }
-    
-    // Find the element in data0 that joins the lowest following element in data1.
-    function findFollowing(i, data0, data1, key) {
-        var n = data1.length, m = data0.length;
-        while (++i < n) {
-        var k = key(data1[i]);
-        for (var j = 0; j < m; ++j) {
-            if (key(data0[j]) === k) return data0[j];
-            }
-        }      
-    }
-    
-    function arcTween(d) {
-        var i = d3.interpolate(this._current, d);
-        this._current = i(0);
-        return function(t) {
-            return arc(i(t))
-        }
-    }
-    
-    function cloneObj(obj) {
-        var o = {};
-        for(var i in obj) {
-            o[i] = obj[i];
-        }
-        return o;
-    }
-}
+
+function change_outer(dictObj) {
+
+    var outerNext = Object.values(dictObj.outer.values).map(data => data.GFA);
+    var nextFAR = dictObj.outer.FAR;
+
+    function transitionOuter(outerNext) {
+
+        var path = svg_outer.selectAll(".arc > path")
+            .data(arcs(outerPrev, outerNext, outerFAR, nextFAR));
+        
+        var t2 = path.transition()
+                    .duration(1000)
+              .attrTween("d", tweenArc(function(d, i) {
+                //console.log("i: ", i, "d: ", d, "d.next: ", d.next)
+                return {
+                  startAngle: d.next.startAngle,
+                  endAngle: d.next.endAngle,
+                  outerRadius: d.next.outerRadius
+                };
+              }));
+      
+        outerPrev = outerNext;
+        outerFAR = nextFAR;
+      }
+        
+    transitionOuter(outerNext);
+};
+
 
 
 
@@ -509,7 +350,7 @@ function doTheThing(dictObj, zipcodeInput) {
     // Clear previous zipcode opbects
     zipLayer.clearLayers();
 
-    console.log(dictObj);
+    //console.log(dictObj);
     var zipcodeManhattan = dictObj.manhattan.zipcode;
     var zipcodeOuter = dictObj.outer.zipcode;
     var neighborhoodManhattan = dictObj.manhattan.neighborhood;
